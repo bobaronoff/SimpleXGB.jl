@@ -29,6 +29,6 @@ include("xgbscore.jl")
 
 
 
-include(basedir * "xgbdata.jl")  # this needs to be last entry
+include("xgbdata.jl")  # this needs to be last entry
 
 end

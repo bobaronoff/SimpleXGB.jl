@@ -10,7 +10,7 @@ using Distributions , GLM , Loess
 using Plots
 
 # structures
-export XBGData
+export XGBData
 
 # functions
 export xgboost_prep, xgboost_lc 

@@ -9,4 +9,26 @@ using Statistics, StatsBase, Random
 using Distributions , GLM , Loess
 using Plots
 
+# structures
+export XBGData
+
+# functions
+export xgboost_prep, xgboost_lc 
+export xgboost_fit, xgboost_score
+export xgboost_log, nsplitstree 
+
+include("xgbprep.jl")
+
+include("xgblearn.jl")
+
+include("xgbfit.jl")
+
+include("xgbscore.jl")
+
+
+
+
+
+include(basedir * "xgbdata.jl")  # this needs to be last entry
+
 end

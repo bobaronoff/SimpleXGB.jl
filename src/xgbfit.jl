@@ -414,7 +414,7 @@ function xgboost_fit(traindata;
         metricdata["relativecost"]=sum(costmat)/sum(defaultcost)
 
         if showplots==true
-            vscodedisplay(xtabledf)
+            Main.VSCodeServer.vscodedisplay(xtabledf)
         end
     end
 

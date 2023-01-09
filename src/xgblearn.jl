@@ -141,7 +141,7 @@ function mksplitplot(nsplitall,numrounds, modelname)
         nsplitall=movave(nsplitall,7)
         plt1= plot(collect(1:numrounds),nsplitall, label="", xlabel="round number",
                     ylabel="ave. number of splits", linewidth=2,
-                    title=modelname*"ave. splits / round")
+                    title=modelname*"ave. splits each round")
     else
         ls=reshape(string.(collect(0:(ns-1))),(1,ns))
         for i in 1:size(nsplitall)[2]
@@ -150,7 +150,7 @@ function mksplitplot(nsplitall,numrounds, modelname)
         plt1= plot(collect(1:numrounds),nsplitall, label=ls, xlabel="round number",
                     ylabel="ave. number of splits", linewidth=2,legend_title="Class",
                     legend_title_font_pointsize=8, legend_title_font_halign=:left,
-                    title=modelname*"ave. splits / round")
+                    title=modelname*"ave. splits each round")
     end
     return (plot=plt1 , splitdata=nsplitall)
 end

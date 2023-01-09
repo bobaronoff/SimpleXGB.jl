@@ -281,7 +281,9 @@ end
 """
     movave()
 
-    Utility function to create a moving average
+    Utility function to create a moving average.
+    The 'span' on each side is passed in second parameter.
+    ( Total span is 2*buff+1 )
 
 """
 function movave(X::Vector,buff::Int)

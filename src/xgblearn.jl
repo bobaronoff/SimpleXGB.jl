@@ -151,16 +151,17 @@ function mksplitplot(nsplitall,numrounds, modelname,params)
                     ylabel="ave. number of splits", linewidth=2,legend_title="Class",
                     legend_title_font_pointsize=8, legend_title_font_halign=:left,
                     title=modelname*"ave. splits each round")
-        xmarg= xlims(plt1)[1] + .035*(xlims(plt1)[2]-xlims(plt1)[1])
-        plist=string.(collect(keys(params))) ; pval=string.(values(params)) ; pc=0
-        for i in eachindex(plist)
-            if plist[i]!="eval_metric"
-                pc += 1
-                annotate!(xmarg, ylims(plt1)[1]+(0.05+.05*pc)*(ylims(plt1)[2]-ylims(plt1)[1]),
-                    text(plist[i]*": "*pval[i], 
-                    halign= :left, valign= :bottom, pointsize=8))
-            end    
-        end
+    end
+    xmarg= xlims(plt1)[1] + .035*(xlims(plt1)[2]-xlims(plt1)[1])
+    ylims!(plt1,(0,ylims(plt1)[2]))
+    plist=string.(collect(keys(params))) ; pval=string.(values(params)) ; pc=0
+    for i in eachindex(plist)
+        if plist[i]!="eval_metric"
+            pc += 1
+            annotate!(xmarg, ylims(plt1)[1]+(.05*pc)*(ylims(plt1)[2]-ylims(plt1)[1]),
+            text(plist[i]*": "*pval[i], 
+            halign= :left, valign= :bottom, pointsize=8))
+        end    
     end
     return (plot=plt1 , splitdata=nsplitall)
 end

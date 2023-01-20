@@ -69,8 +69,8 @@ function xgboost_prep( predf::DataFrame, targetname::String;
 
     # make copy to make proper without altering original
     df=copy(predf)
-    properdf!(df)
-    tallydf=typetally(df)
+    xgbproperdf!(df)
+    tallydf=xgbtypetally(df)
     grpother=0
     if length(targetstrings)>0
         if lowercase(targetstrings[1])=="other"
@@ -626,6 +626,109 @@ function hotstuff(vx::Vector{Union{Missing, String}}, xname::String ; keepmissin
         
     return tempdf
 end
+
+function xgbproperdf!(df::DataFrame ;  missingalias=["","NA","na"])
+    allowmissing!(df)
+    # replace nothing's
+    df .= ifelse.(isnothing.(df), missing, df)
+    # map missingalias
+    df .= ifelse.(ifelse.(ismissing.(df .∈ [missingalias]),true, df .∈ [missingalias]), missing,df)
+    # reset column Types
+    for c in 1: ncol(df)
+        type = eltype(df[!,c])
+        types = unique(typeof.(df[!,c]))
+        hasmissing = ( Missing in types)
+        if type == Any
+            if (!hasmissing )
+                types = filter(x -> x!=Missing, types)
+            end
+            df[!,c]=convert(AbstractVector{Union{types...}}, df[!,c])
+        else
+            if (!hasmissing)
+                types = filter(x -> x!=Missing, types)
+                df[!,c]=convert(AbstractVector{Union{types...}}, df[!,c])
+            end
+        end
+    end
+end
+
+function xgbtypetally(df::DataFrame)
+    # establish parameters of 'df'
+    sizedf=size(df)
+    # exclude empty datafram from processing
+    if sizedf[1]>0
+        tarray= zeros(Int,sizedf)
+        celltypes=Vector{DataType}(undef, 0)
+        celltypenames=Vector{String}(undef, 0)
+        ntypes=0
+        for r = 1:sizedf[1], c = 1:sizedf[2]
+            typecell=typeof(df[r,c])
+            typename=string(typecell)
+            if ntypes>0
+                #check to see if celltypenames is a new type
+                pos=findfirst(==(typename),celltypenames)
+                if isnothing(pos)
+                    # new type
+                    push!(celltypes,typecell)
+                    push!(celltypenames,typename)
+                    ntypes=length(celltypenames)
+                    tarray[r,c]=ntypes
+                else
+                    # not new type
+                    tarray[r,c]=pos
+                end
+            else
+                push!(celltypes,typecell)
+                push!(celltypenames,typename)
+                ntypes=1
+                tarray[r,c]=1
+            end
+        end
+        # type of each element recorded
+        # tally types by column
+        coltally=fill([0,0], (sizedf[2],ntypes))
+
+        # create unique data
+        xcol=0
+        for col in eachcol(tarray)
+            temptally=zeros(Int,ntypes)
+            xcol += 1
+            for e=1:sizedf[1]
+                temptally[col[e]] += 1
+            end
+            for i2=1:ntypes
+                coltally[xcol,i2 ] = [temptally[i2] , coltally[xcol,i2 ][2]  ]
+            end
+            
+            # calulate uniques by type
+            for el=1:ntypes
+                if coltally[xcol,el][1]>0
+                    if celltypenames[el]=="Nothing"  || celltypenames[el]=="Missing"
+                        coltally[xcol,el] = [ coltally[xcol,el][1] ,1]
+                    else
+                        itype= findall(==(el),col)
+                        eldf=df[itype,xcol]
+                        try  # presort speeds up unique()
+                            sort!(eldf)
+                        catch
+                            # fail to sort. pass eldf unsorted
+                        end
+                        nel=length(unique(eldf))
+                        coltally[xcol,el] = [ coltally[xcol,el][1] ,nel]
+                    end
+                end
+            end  # end create unique
+        end
+        tallydf= DataFrame(coltally , :auto)
+        DataFrames.rename!(tallydf,Symbol.(celltypenames))
+        insertcols!(tallydf, 1, :ColNames => names(df))
+    else
+        msg="checktypesDF() requires a non-empty DataFrame object"
+        error(msg)   
+    end
+    return(tallydf)
+end
+
 
 function hotstuff(vx::Vector{String} , xname::String ; keepmissingcol::Bool=false , dummyoveronehot::Bool=false)
     vx=convert(AbstractVector{Union{Missing, String}}, vx)

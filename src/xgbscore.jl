@@ -61,7 +61,7 @@ end
 function mkrecipe(xdf::DataFrame, xmap::NamedTuple)
     #routine to transform DataFrame via recipes
     df=copy(xdf)
-    properdf!(df)
+    xgbproperdf!(df)
     numrows=size(df)[1]
     rnames=keys(xmap.recipes)
     xnames=names(df)

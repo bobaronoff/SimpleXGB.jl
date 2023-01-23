@@ -589,6 +589,8 @@ function plotcost(rc, modelname ; costmatrix=[1])
     cstabs=  (ctp .* rc.df.tpr ) .+ (cfp .* rc.df.fpr ) .+ (ctn .* tnr ) .+ (cfn .* fnr )
     cr0= cstabs[end]
     cr= cstabs ./ cr0
+    opt=findmin(cr)
+    
 
     pltcost=plot(rc.df.thresh, cr,linewidth=3, label="rel. cost" , legend=:bottomright ,
                             xlabel="Threshold" , ylabel="Relative Cost", minorgrid=true ,
@@ -600,6 +602,20 @@ function plotcost(rc, modelname ; costmatrix=[1])
     xlims!(0,xlims(pltcost)[2])
     x1= 0
     xrng=xlims(pltcost)[2]
+    # show minimum cost
+    plot!([rc.df.thresh[opt[2]],rc.df.thresh[opt[2]]],[0,cr[opt[2]]], label="",
+                            linewidth=1, color= :black)
+    annotate!(rc.df.thresh[opt[2]]+ .02, .1,text(string(round(rc.df.thresh[opt[2]],digits=3)),
+                        halign= :left, valign= :bottom, pointsize =8))
+    plot!([rc.df.thresh[opt[2]]+ .05,rc.df.thresh[opt[2]]],
+                [.09,0], arrow=true, linewidth=1, 
+                   color= :black, label="")
+    plot!([0,rc.df.thresh[opt[2]]],[cr[opt[2]],cr[opt[2]]],linewidth=1,
+                    color= :black, label="")
+    annotate!(0.02,cr[opt[2]]-.05,text(string(round(cr[opt[2]],digits=3)),
+                    halign= :left, valign= :bottom, pointsize =8))
+
+    # show legend of costs
     annotate!(.95*xrng+x1,.3*yrng+y1,text("Cost FP: "* string(round(cfp,digits=2)),
                     halign= :right, valign= :bottom, pointsize =8 , color= :red) )
     annotate!(.95*xrng+x1,.25*yrng+y1,text("Cost FN: "* string(round(cfn,digits=2)),

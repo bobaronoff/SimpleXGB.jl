@@ -356,6 +356,8 @@ function xgboost_fit(traindata;
         # normalize predictions
         npred=size(predtest)[1]
         classtest=zeros(Int64,npred)
+        # use softmax method of prediction normalization
+        #predtest = exp.(predtest)
         for j2 in 1:npred
             predtest[j2,:]= predtest[j2,:] ./ sum(predtest[j2,:]) 
             classtest[j2] = findmax(predtest[j2,:])[2] - 1

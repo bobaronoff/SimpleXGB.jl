@@ -526,7 +526,8 @@ end
 """
 function plotroc(rc, modelname)
 
-    pltroc=plot(rc.df.fpr, rc.df.tpr,linewidth=3, label="", title= modelname*"ROC curve - test data")
+    pltroc=plot(rc.df.fpr, rc.df.tpr,linewidth=3, label="", title= modelname*"ROC curve - test data",
+                        xlabel="False Positive Rate", ylabel="True Positive Rate")
     xlims!(0,1)
     ylims!(0,1.05)
     plot!([0,1],[0,1], label="", color= :black)

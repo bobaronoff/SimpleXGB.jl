@@ -151,6 +151,8 @@ function xgboost_fit(traindata;
     # construct predictions
     predtrain=XGBoost.predict(mboost,traindm)
     predtest=XGBoost.predict(mboost,testdm)
+
+    rtnpred=predtest
     
     # initialize return structures
     allplots=[]
@@ -329,6 +331,7 @@ function xgboost_fit(traindata;
         if ndims(predtest)>1  # workaround for type 'transpose' returned by xgboost.jl
             predtest=Matrix(predtest)
         end
+        rtnpred=predtest
         # tree diagnostics
         nsplitmodel=reshape(nsplitmodel,(nclass,num_round))
         nsplitmodel=Matrix(transpose(nsplitmodel))
@@ -359,7 +362,7 @@ function xgboost_fit(traindata;
         # use softmax method of prediction normalization
         #predtest = exp.(predtest)
         for j2 in 1:npred
-            predtest[j2,:]= predtest[j2,:] ./ sum(predtest[j2,:]) 
+            #predtest[j2,:]= predtest[j2,:] ./ sum(predtest[j2,:]) #XGBoost already normalized
             classtest[j2] = findmax(predtest[j2,:])[2] - 1
         end
 
@@ -482,7 +485,7 @@ function xgboost_fit(traindata;
 
     # compose return structure  
     return ( booster=mboost, params=params, metrics=metricdata, variables=variabledata,
-                     pdp=pdpdata, plots=allplots ) 
+                     pdp=pdpdata, plots=allplots ,yhat=rtnpred) 
 
 end
 

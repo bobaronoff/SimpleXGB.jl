@@ -53,7 +53,7 @@ using Statistics, StatsBase, Random
         Example
         ```
         preppedtuple=xgboost_prep(mydf,"y",excludex=["ID"], mintargetnum=40)
-        anotherprep=boostpref(mydf2,"y", targetstrings=["mild","medium","severe"],
+        anotherprep=xgboost_prep(mydf2,"y", targetstrings=["mild","medium","severe"],
                                 includex=["x1","x2","z1"], 
                                 targetasordinal=true, trainfraction=.7)
         ```
@@ -463,6 +463,67 @@ function xgboost_prep( predf::DataFrame, targetname::String;
     return (prepdf=boostdf, regclass=regclass, targetstrings=targetstrings , xnamedict=xnamedict,
                  trainindex=trainindex, testindex=testindex, 
                     map=(recipes=recipes, postnames=postnames))
+end
+
+"""
+
+    xgboost_set()
+
+    This function is a convenience form of xgboost_prep().  It differs in the return tuple.
+
+    This function is designed to prepare a DataFrame for training with XGBoost.
+
+    Two un-named parameters are for the dataframe and column name of the target variable.
+        
+    When the target is nominal or ordinal, the classes to be kept are listed in
+    'targetstrings' (i.e. Vector{String}). If not specified, all unique values in the
+    column are used (max number is 6). If the first listed is 'other', the function
+    will group all values not listed in remainder of 'targetstrings'.
+        
+    Two named parameters, 'includex' and 'excludex' are Vector{String} which indicate
+    columns to be used in the model.  In general, only one of these two would be used.
+        
+    'parsetonum'=true instructs to attempt conversion of {String} columns to numeric.
+        
+    {String} columns with 10 or less unique values will be treated as nominal and
+    encoded to multiple columns using either one-hot or dummy method as specified by
+    'dummyoveronehot' (default=false). The dummy method removes the column with least frequency.
+        
+    Nominal or ordinal targets require a minimum number of each class as indicated
+    in parameter 'mintargetnum'. The parameter 'targetasordinal'=true instructs
+    to treat a nominal target as ordinal.  The order is as indicated in 'targetstrings'.
+    If 'targetstrings' is empty, the order is alphabetic.
+        
+    The function accommodates 'missing' values in the DataFrame. When a target column has a 
+    missing value, the entire row is removed. A 'missing' value in a variable column is left
+    n place.  A variable column is removed if the fraction 'missing' exceed 'maxmissingfrac'
+    (default is 0.9).
+        
+    This function separates the DataFrame into training and test sets.  The fraction alotted 
+    to the training portion is 'trainfraction' (default is 0.8). Nominal and ordinal targets
+    are divided by class.
+
+    The function returns a named tuple.
+        train => the training portion of the 'prepped' DataFrame as XGBData object
+        test => the testing portion of the 'prepped' DataFrame as XGBData object
+        map => the conversion map from initial to prepped DataFrame (used in scoring new data)
+
+    Example
+    ```
+    preppedtuple=xgboost_set(mydf,"y",excludex=["ID"], mintargetnum=40)
+    anotherprep=xgboost_set(mydf2,"y", targetstrings=["mild","medium","severe"],
+                            includex=["x1","x2","z1"], 
+                            targetasordinal=true, trainfraction=.7)
+        ```
+
+"""
+function xgboost_set(predf::DataFrame, targetname::String; kw...)
+    prep=xgboost_prep(predf::DataFrame, targetname::String; kw...)
+    preptrain=prep.prepdf[prep.trainindex,:]
+    xpreptrain=XGBData(preptrain,ylabel=targetname)
+    preptest=prep.prepdf[prep.testindex,:]
+    xpreptest=XGBData(preptest,ylabel=targetname)
+    return (train=xpreptrain, test=xpreptest, map=prep.map)
 end
 
 function reversedict(xdict::Dict{String, Vector{String}})

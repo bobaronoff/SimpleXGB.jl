@@ -13,7 +13,7 @@ using Plots
 export XGBData
 
 # functions
-export xgboost_prep, xgboost_lc 
+export xgboost_prep, xgboost_lc , xgboost_set
 export xgboost_fit, xgboost_score
 export xgboost_log, nsplitstree 
 

@@ -751,3 +751,75 @@ function nsplitstree(tree::XGBoost.Node)
     splits=maximum([0,sum(leaves)-1])
     return (splits)
 end
+
+function xgboost_shapley(b::Booster, Xy;
+    estimate::Bool=false,
+    topnvar::Integer=0, # 0 => all variables
+    spanloess::Float64=0.0,  # 0 => no loess line
+    showplots::Bool=true    
+   )
+    # function to provide SHAP analyses
+    featlist=b.feature_names
+    objective=get(b.params,:objective,"reg:squarederror")
+    type= estimate ? 3 : 2
+    
+    dmXy=DMatrix(Xy)
+    if typeof(Xy)==XGBData
+        Xy=Xy.xdata[!,Not(Symbol(Xy.ylabel))]
+    end
+
+    shap_data=predict_shapley(b,dmXy,type=type)
+    # mean_contrib=mean(shap_data[:,1:(end-1)])
+    # std_contrib=std(shap_data[:,1:(end-1)])
+    #quant_contrib=quantile(vec(shap_data[:,1:(end-1)]),[.025,.975])
+    shaplohi=extrema(vec(shap_data[:,1:(end-1)]))
+
+    shap_imp=  mapslices(mean,abs.(shap_data), dims=1)
+    bias=shap_imp[end]
+    shap_imp=shap_imp[1:(end-1)]
+    imporder=sortperm(shap_imp, rev=true)
+    if topnvar<1 || topnvar>length(shap_imp)
+        nfeat=length(shap_imp)
+    else 
+        nfeat=topnvar
+    end
+
+    # plot variable importance via Shapley values
+    plt1=bar(shap_imp[imporder[1:nfeat]], orientation=:h, label="", 
+                title="Shapley based variable importance", 
+                yticks=(1:nfeat, featlist[imporder[1:nfeat]]), yflip=true)
+    
+    if showplots==true
+        display(plt1)
+    end
+
+    # create SHAP dependence plot
+    for i in 1:nfeat
+        #plt1=plotshapdp(Xy[!:Symbol(featlist[imporder[i]])],shap_data[!,imporder[i]])
+        xnotmiss=findall(!ismissing,Xy[:, Symbol(featlist[imporder[i]])])
+        sX=Xy[xnotmiss, Symbol(featlist[imporder[i]])]
+        sY=shap_data[xnotmiss,imporder[i]]
+        xlohi=quantile(sX,[.005,.995])
+        plt1=scatter(sX,sY,ylim=shaplohi, xlim=(xlohi[1],xlohi[2]),
+                     title=featlist[imporder[i]], markersize=3, label="", 
+                     ylabel="margin contribution")
+        if length(unique(sort(Xy[xnotmiss, Symbol(featlist[imporder[i]])])))>10  && spanloess>0.0
+            # plot loess line
+            sX=convert(Vector{Float64},sX)
+            model=loess(sX,sY,span=spanloess)
+            xrng=range(extrema(sX)...;length=25)
+            yloess=Loess.predict(model,xrng)
+            plot!(xrng,yloess, linewidth=3, label="")
+        end
+
+        if showplots==true
+            display(plt1)
+        end
+    end
+
+
+
+
+
+
+end

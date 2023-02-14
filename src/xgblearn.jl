@@ -323,7 +323,7 @@ end
     The shape of returned data varies with 'type' option and certain objectives.
     
 """
-function xgboost_shapley(b::Booster, Xy::DMatrix;
+function predict_shapley(b::Booster, Xy::DMatrix;
                          type::Integer=0,  # 0-normal, 1-margin, 2-contrib, 3-est. contrib,4-interact,5-est. interact, 6-leaf
                          training::Bool=false,
                          ntree_lower_limit::Integer=0,
@@ -343,3 +343,4 @@ function xgboost_shapley(b::Booster, Xy::DMatrix;
     o = unsafe_wrap(Array, o[], tuple(dims...))
     length(dims) > 1 ? permutedims(o, reverse(1:ndims(o))) : o
 end
+

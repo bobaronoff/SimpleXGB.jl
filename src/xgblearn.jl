@@ -306,3 +306,24 @@ function movave(X::Vector,buff::Int)
     end
     return Y
 end
+
+function xgboost_shapley(b::Booster, Xy::DMatrix;
+                         type::Integer=0,  # 0-normal, 1-margin, 2-contrib, 3-est. contrib,4-interact,5-est. interact, 6-leaf
+                         training::Bool=false,
+                         ntree_lower_limit::Integer=0,
+                         ntree_limit::Integer=0,  # 0 corresponds to no limit
+                        )
+    opts = Dict("type"=>type,
+                "iteration_begin"=>ntree_lower_limit,
+                "iteration_end"=>ntree_limit,
+                "strict_shape"=>false,
+                "training"=>training,
+                ) |> JSON3.write
+    oshape = Ref{Ptr{UInt64}}()
+    odim = Ref{UInt64}()
+    o = Ref{Ptr{Cfloat}}()
+    XGBoost.xgbcall(XGBoost.XGBoosterPredictFromDMatrix, b.handle, Xy.handle, opts, oshape, odim, o)
+    dims = reverse(unsafe_wrap(Array, oshape[], odim[]))
+    o = unsafe_wrap(Array, o[], tuple(dims...))
+    length(dims) > 1 ? permutedims(o, reverse(1:ndims(o))) : o
+end

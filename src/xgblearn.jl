@@ -307,6 +307,22 @@ function movave(X::Vector,buff::Int)
     return Y
 end
 
+"""
+
+    This function bypases XGBoost.predict in order to obtain Shapley values.
+
+    The 'type' parameter conforms to prediction types specified in the XGBoost documentation.
+    Options include:
+        0 => normal (default)
+        1 => output margin
+        2 => predict contribution
+        3 => predict approximate contribution
+        4 => predict feature interactions
+        5 => predict approximate feature interactions
+        6 => predict leaf training (see XGBoost documentation)
+    The shape of returned data varies with 'type' option and certain objectives.
+    
+"""
 function xgboost_shapley(b::Booster, Xy::DMatrix;
                          type::Integer=0,  # 0-normal, 1-margin, 2-contrib, 3-est. contrib,4-interact,5-est. interact, 6-leaf
                          training::Bool=false,

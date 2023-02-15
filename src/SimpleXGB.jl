@@ -9,6 +9,7 @@ using Statistics, StatsBase, Random
 using Distributions , GLM , Loess
 using Plots
 using JSON3
+using KernelDensity
 
 # structures
 export XGBData

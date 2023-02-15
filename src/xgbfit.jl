@@ -756,7 +756,10 @@ function xgboost_shapley(b::Booster, Xy;
     estimate::Bool=false,
     topnvar::Integer=0, # 0 => all variables
     spanloess::Float64=0.0,  # 0 => no loess line
-    showplots::Bool=true    
+    showplots::Bool=true ,
+    standardizeplots::Bool=false,
+    shapcolor= :rainbow ,
+    shapalpha= 0.9   
    )
     # function to provide SHAP analyses
     featlist=b.feature_names
@@ -784,14 +787,26 @@ function xgboost_shapley(b::Booster, Xy;
         nfeat=topnvar
     end
 
+    shap_c=abs.(shap_data[:,(1:(end-1))])
+    t_shap=mapslices(sum,shap_c, dims=2)
+    nc=size(shap_data)[2]-1
+    for i in 1:nc
+        shap_c[:, i]= shap_c[:, i] ./ t_shap
+    end
+    shap_c_x=extrema(shap_c)
+    
     # plot variable importance via Shapley values
     plt1=bar(shap_imp[imporder[1:nfeat]], orientation=:h, label="", 
-                title="Shapley based variable importance", 
+                title="Shapley based variable importance", color=shapcolor,
                 yticks=(1:nfeat, featlist[imporder[1:nfeat]]), yflip=true)
     
     if showplots==true
         display(plt1)
     end
+
+    gX=Vector{Float64}(undef,0)
+    gY=Vector{Float64}(undef,0)
+    gZ=Vector{Float64}(undef,0)
 
     # create SHAP dependence plot
     for i in 1:nfeat
@@ -799,11 +814,21 @@ function xgboost_shapley(b::Booster, Xy;
         xnotmiss=findall(!ismissing,Xy[:, Symbol(featlist[imporder[i]])])
         sX=Xy[xnotmiss, Symbol(featlist[imporder[i]])]
         sY=shap_data[xnotmiss,imporder[i]]
+        sZ=shap_c[xnotmiss,imporder[i]]
+        jY=jit(sY)
+        fY=fill(Float64(nfeat-i+1), length(sY)) .+ jY
+        append!(gX,sY)
+        append!(gY,fY)
+        append!(gZ,sZ)
         xlohi=quantile(sX,[.005,.995])
-        plt1=scatter(sX,sY,ylim=shaplohi, xlim=(xlohi[1],xlohi[2]),
-                     title=featlist[imporder[i]], markersize=3, label="", 
+        plt1=scatter(sX,sY, xlim=(xlohi[1],xlohi[2]),
+                     title="Shapley dependence: " * featlist[imporder[i]], 
+                     markersize=3, label="", marker_z=sZ, color=shapcolor,clims=shap_c_x,
                      ylabel="margin contribution")
-        if length(unique(sort(Xy[xnotmiss, Symbol(featlist[imporder[i]])])))>10  && spanloess>0.0
+        if standardizeplots==true
+            plot!(plt1, ylim=shaplohi)
+        end
+        if length(unique(sort(Xy[xnotmiss, Symbol(featlist[imporder[i]])])))>10  && spanloess  >0.0
             # plot loess line
             sX=convert(Vector{Float64},sX)
             model=loess(sX,sY,span=spanloess)
@@ -811,15 +836,42 @@ function xgboost_shapley(b::Booster, Xy;
             yloess=Loess.predict(model,xrng)
             plot!(xrng,yloess, linewidth=3, label="")
         end
-
+        
         if showplots==true
             display(plt1)
         end
     end
 
+    plt1=scatter(gX,gY, label="", title="SHAP contributions", ylim=(0.5,0.5+nfeat),
+                    yticks=(1:nfeat, featlist[imporder[nfeat:-1:1]]), marker_z=gZ,
+                    markersize=2,color=shapcolor, markeralpha=shapalpha, 
+                    xlabel="Shapley value")
+    vline!([0.0],label="")
+    
+        
+
+    if showplots==true
+        display(plt1)
+    end
 
 
+end
+
+function jit(x)
+    dx=mapdensity(x)
+    maxd=maximum(dx)
+    ndx= dx ./ maxd
+    r=(rand(length(x)) .- 0.5) .* 0.8
+    jx= ndx .* r
+    return jx
+end
 
 
-
+function mapdensity(x)
+    u=kde(x)
+    d=Vector{Float64}(undef,0)
+    for i in eachindex(x)
+        push!(d,u.density[findmin(abs.(u.x.-x[i]))[2]])
+    end
+    return d
 end

@@ -39,6 +39,49 @@ function predict_shapley(b::Booster, Xy::DMatrix;
 end
 
 
+"""
+    xgboost_shap()
+
+    This function performs and plots SHAP analysis.  
+    Shapley values obtained with TreeSHAP algorithm.
+    Returned are plots for SHAP importance, dependency, and contribution.
+
+    First parameter is a booster object.  
+    The second parameter is data to be scored and passed to SHAP analysis.
+        The form of data must be convertable to DMatrix and compatible with 
+        booster object.
+
+    There are several optional named parameters:
+        estimate => {Bool} to indicate whether to approximate Shapley values
+                    (default = false)
+        topnvar => {Int} number of variables to plot (default=0 -> all variables)
+        modelname => {String} name on plots 
+        spanloess => {Float64} span[0.0,1.0] for loess line on dependency plots  
+                     (default = 0.0 -> no line)
+        showplots => {Bool} triggers display of plots (default=true)
+        stndardizeplots => {Bool} places all dependency plots on same y axis limits
+                            ( default= false)
+        shapcolor => any prefined color gradient or user defines gradients accepted
+                     by Plots.jl (default = :rainbow)
+        shapalpha => {Float64} any alpha value [0.0,1.0] accepted by Plots.jl (default= 0.5)
+    
+    There are four objects returned in a named tuple.
+        plots => a vector of plots
+        bias => the bias value for contributions. This is generally the average prediction
+                of the supplied data (on the object margin scale).
+        shapley => the shapley values corresponding to the scored data. returned as Matrix
+                   type to allow further analysis.  Column names correspond to the 
+                   'feature_names' field of the supplied booster object.
+        importance => a dataframe with feature names and Shapley value based importance.
+                      Importance is the mean of absolute value of Shapley values for a feature.
+                      Rows are ordered from most to least important.
+
+    Example:
+    ```
+        myshap= xgboost_shap(my_booser, train_data, topnvar=8);
+    ```
+
+"""
 function xgboost_shap(b::Booster, Xy;
     estimate::Bool=false,
     topnvar::Integer=0, # 0 => all variables
@@ -146,6 +189,7 @@ function xgboost_shap(b::Booster, Xy;
         end
     end
 
+    #full TreeShap plot
     plt1=scatter(gX,gY, label="", title=modelname * "TreeSHAP contributions", ylim=(0.5,0.5+nfeat),
                     yticks=(1:nfeat, featlist[imporder[nfeat:-1:1]]), marker_z=gZ,
                     markersize=2,color=shapcolor, markeralpha=shapalpha, 

@@ -18,7 +18,7 @@ export XGBData
 export xgboost_prep, xgboost_lc , xgboost_set
 export xgboost_fit, xgboost_score
 export xgboost_log, nsplitstree
-export xgboost_shapley 
+export xgboost_shap 
 
 include("xgbprep.jl")
 
@@ -27,6 +27,8 @@ include("xgblearn.jl")
 include("xgbfit.jl")
 
 include("xgbscore.jl")
+
+include("xgbshap.jl")
 
 
 

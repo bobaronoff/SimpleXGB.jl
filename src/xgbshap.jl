@@ -132,8 +132,16 @@ function xgboost_shap(b::Booster, Xy;
     shap_c=abs.(shap_data[:,(1:(end-1))])
     t_shap=mapslices(sum,shap_c, dims=2)
     nc=size(shap_data)[2]-1
+    X_p=zeros(size(Xy))
+    X_p=convert(AbstractMatrix{Union{Missing, Float64}},X_p)
     for i in 1:nc
         shap_c[:, i]= shap_c[:, i] ./ t_shap
+        #= mxmn=quantile(skipmissing(Xy[:,i]),[.005,.995])
+        frng=mxmn[2]-mxmn[1]
+        X_p[:,i]=  (Xy[:,i] .- mxmn[1]) ./ frng
+        X_p[:,i]=map(x-> ismissing(x) ? missing : x<0.0 ? 0.0 : x ,X_p[:,i])
+        X_p[:,i]=map(x-> ismissing(x) ? missing : x>1.0 ? 1.0 : x ,X_p[:,i]) =#
+        X_p[:,i]= percentilerangevalue(Xy[:,i])
     end
     shap_c_x=extrema(shap_c)
     
@@ -152,6 +160,7 @@ function xgboost_shap(b::Booster, Xy;
     gX=Vector{Float64}(undef,0)
     gY=Vector{Float64}(undef,0)
     gZ=Vector{Float64}(undef,0)
+    gZ2=Vector{Float64}(undef,0)
 
     # create SHAP dependence plot
     for i in 1:nfeat
@@ -160,11 +169,13 @@ function xgboost_shap(b::Booster, Xy;
         sX=Xy[xnotmiss, Symbol(featlist[imporder[i]])]
         sY=shap_data[xnotmiss,imporder[i]]
         sZ=shap_c[xnotmiss,imporder[i]]
+        sZ2=X_p[xnotmiss,imporder[i]]
         jY=jit(sY)
         fY=fill(Float64(nfeat-i+1), length(sY)) .+ jY
         append!(gX,sY)
         append!(gY,fY)
         append!(gZ,sZ)
+        append!(gZ2,sZ2)
         xlohi=quantile(sX,[.005,.995])
         plt1=scatter(sX,sY, xlim=(xlohi[1],xlohi[2]),
                      title=modelname * "Shapley dependence - " * featlist[imporder[i]], 
@@ -189,10 +200,25 @@ function xgboost_shap(b::Booster, Xy;
         end
     end
 
-    #full TreeShap plot
+    #full TreeShap plot contribution
     plt1=scatter(gX,gY, label="", title=modelname * "TreeSHAP contributions", ylim=(0.5,0.5+nfeat),
                     yticks=(1:nfeat, featlist[imporder[nfeat:-1:1]]), marker_z=gZ,
                     markersize=2,color=shapcolor, markeralpha=shapalpha, 
+                    colorbar_title="fractional contribution to prediction",
+                    xlabel="Shapley value")
+    vline!([0.0],label="")
+    
+    push!(allplots,plt1)    
+
+    if showplots==true
+        display(plt1)
+    end
+    
+    #full TreeShap plot summary
+    plt1=scatter(gX,gY, label="", title=modelname * "TreeSHAP summary", ylim=(0.5,0.5+nfeat),
+                    yticks=(1:nfeat, featlist[imporder[nfeat:-1:1]]), marker_z=gZ2,
+                    markersize=2,color=shapcolor, markeralpha=shapalpha, 
+                    colorbar_title="feature value (percentile range)",
                     xlabel="Shapley value")
     vline!([0.0],label="")
     
@@ -222,4 +248,22 @@ function mapdensity(x)
         push!(d,u.density[findmin(abs.(u.x.-x[i]))[2]])
     end
     return d
+end
+
+function percentilerangevalue(x)
+    idx=findall(!ismissing,x)
+    x2=convert(AbstractVector{Float64},x[idx])
+    u=kde(x2)
+    cmdf=cumsum(u.density)
+    cmdf= cmdf ./ cmdf[end]
+    cd=Vector{Float64}(undef,0)
+    for i in eachindex(x2)
+        push!(cd,cmdf[findmin(abs.(u.x.-x2[i]))[2]])
+    end
+    cdx=extrema(cd)
+    cdrng=cdx[2]-cdx[1]
+    cd= (cd .- cdx[1]) ./ cdrng
+    x3=Vector{Union{Missing,Float64}}(missing,length(x))
+    x3[idx]=cd
+    return x3
 end

@@ -148,6 +148,7 @@ function xgboost_shap(b::Booster, Xy;
     # plot variable importance via Shapley values
     plt1=bar(shap_imp[imporder[1:nfeat]], orientation=:h, label="", 
                 title=modelname * "Shapley based variable importance", color=shapcolor,
+                xlabel="mean(absolute(Shapley Value))",
                 yticks=(1:nfeat, featlist[imporder[1:nfeat]]), yflip=true)
     
     
@@ -180,6 +181,7 @@ function xgboost_shap(b::Booster, Xy;
         plt1=scatter(sX,sY, xlim=(xlohi[1],xlohi[2]),
                      title=modelname * "Shapley dependence - " * featlist[imporder[i]], 
                      markersize=3, label="", marker_z=sZ, color=shapcolor,clims=shap_c_x,
+                     colorbar_title="fractional contribution to prediction",
                      ylabel="margin contribution")
         if standardizeplots==true
             plot!(plt1, ylim=shaplohi)

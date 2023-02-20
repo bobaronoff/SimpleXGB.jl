@@ -147,7 +147,7 @@ function xgboost_shap(b::Booster, Xy;
     
     # plot variable importance via Shapley values
     plt1=bar(shap_imp[imporder[1:nfeat]], orientation=:h, label="", 
-                title=modelname * "Shapley based variable importance", color=shapcolor,
+                title=modelname * "Shapley importance", color=shapcolor,
                 xlabel="mean(absolute(Shapley Value))",
                 yticks=(1:nfeat, featlist[imporder[1:nfeat]]), yflip=true)
     

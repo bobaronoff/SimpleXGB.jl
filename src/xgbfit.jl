@@ -325,6 +325,7 @@ function xgboost_fit(traindata;
         metricdata["calibrationchisquare"]=chi
         metricdata["calibrationchidata"]=chidata
 
+        return (predtest,ytest)
     end
 
     if objective=="multi:softprob"
@@ -750,4 +751,29 @@ function nsplitstree(tree::XGBoost.Node)
     traveltree(tree,leaves)
     splits=maximum([0,sum(leaves)-1])
     return (splits)
+end
+
+function dcal(predtest,ytest)
+    # generate density based calibration
+    cls1=findall(isequal.(1.0),ytest)
+    cls0=findall(isequal.(0.0), ytest)
+    meany=mean(ytest)
+    oddsy=meany/(1.0-meany)
+    dens1=kde(predtest[cls1])
+    dens0=kde(predtest[cls0])
+    dxlo= maximum([quantile(predtest[cls1],[.01])[1],quantile(predtest[cls0],[.01])[1]])
+    dxhi= minimum([quantile(predtest[cls1],[.99])[1],quantile(predtest[cls0],[.99])[1]])
+    dp0= dens0.density ./ sum(dens0.density)
+    dp1= dens1.density ./ sum(dens1.density)
+    dx=Vector{Float64}(undef,0)
+    bf=Vector{Float64}(undef,0)
+    for x in dxlo:.002:dxhi
+        xnear0= findmin(abs.(dens0.x .- x))[2]
+        xnear1= findmin(abs.(dens1.x .- x))[2]
+        push!(dx,x)
+        push!(bf,dp1[xnear1]/dp0[xnear0])
+    end
+    postodds= oddsy .* bf
+    postcal= postodds ./ (1 .+ postodds)
+    return dx,postcal
 end

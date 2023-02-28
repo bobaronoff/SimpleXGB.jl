@@ -325,7 +325,6 @@ function xgboost_fit(traindata;
         metricdata["calibrationchisquare"]=chi
         metricdata["calibrationchidata"]=chidata
 
-        return (predtest,ytest)
     end
 
     if objective=="multi:softprob"

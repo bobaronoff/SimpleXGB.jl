@@ -37,8 +37,11 @@ function xgboost_stack_predict(boosters::Vector{XGBoost.Booster},pdata)
     end
     # convert margins in to output (based on objective)
     objective=get(boosters[1].params, :objective, "reg:squarederror")
+    if objective in ["binary:logistic","multi:softprob"]
+        pr= map(logit2prob,pr)
+    end
     
-    return objective
+    return pr
 end
 
 
@@ -46,4 +49,10 @@ end
 function timesec()
     n=now()
     hour(n)*3600+minute(n)*60+second(n)
+end
+
+function logit2prob(logit)
+  odds = exp(logit)
+  prob = odds / (1 + odds)
+  return(prob)
 end

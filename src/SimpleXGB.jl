@@ -31,6 +31,8 @@ include("xgbscore.jl")
 
 include("xgbshap.jl")
 
+include("xgbstack.jl")
+
 
 
 

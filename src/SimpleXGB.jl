@@ -19,7 +19,7 @@ export XGBData
 export xgboost_prep, xgboost_lc , xgboost_set
 export xgboost_fit, xgboost_score
 export xgboost_log, nsplitstree
-export xgboost_shap 
+export xgboost_shap, xgboost_stack
 
 include("xgbprep.jl")
 
